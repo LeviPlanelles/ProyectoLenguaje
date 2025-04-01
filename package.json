@@ -1,0 +1,27 @@
+{
+  "name": "proyecto",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LeviPlanelles/ProyectoLenguaje.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LeviPlanelles/ProyectoLenguaje/issues"
+  },
+  "homepage": "https://github.com/LeviPlanelles/ProyectoLenguaje#readme",
+  "devDependencies": {
+    "electron": "^35.1.2"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  }
+}
