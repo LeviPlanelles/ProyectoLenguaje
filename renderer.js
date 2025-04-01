@@ -1,5 +1,7 @@
+const { ipcRenderer } = require("electron");
+
 document.addEventListener("DOMContentLoaded", () => {
-    const map = L.map("map").setView([38.7886, 0.1629], 13); // Jávea como punto inicial
+    const map = L.map("map").setView([38.7886, 0.1629], 13);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -32,17 +34,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    let currentPopup = null; // Variable para almacenar el popup actual
+    let currentPopup = null;
 
     map.on("click", (e) => {
         const { lat, lng } = e.latlng;
 
-        // Cerrar popup anterior si existe
         if (currentPopup) {
             map.closePopup(currentPopup);
         }
 
-        // Crear nuevo popup
         currentPopup = L.popup()
             .setLatLng(e.latlng)
             .setContent(`
@@ -59,25 +59,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 button.addEventListener("click", () => {
                     const placeName = input.value.trim();
                     if (placeName !== "") {
-                        // Crear marcador en la ubicación guardada
-                        const marker = L.marker([lat, lng], { draggable: true }).addTo(map)
-                            .bindPopup(`<b>${placeName}</b><br>(Arrástrame para mover)`);
-
-                        // Mostrar datos en la consola
                         const placeData = {
                             nombre: placeName,
                             coordenadas: { lat, lng }
                         };
-                        console.log(JSON.stringify(placeData, null, 2));
 
-                        // Evento para detectar cuando el marcador es movido
-                        marker.on("dragend", (event) => {
-                            const newCoords = event.target.getLatLng();
-                            console.log(`Marcador "${placeName}" movido a:`, {
-                                lat: newCoords.lat,
-                                lng: newCoords.lng
-                            });
-                        });
+                        ipcRenderer.send("save-location", placeData);
+                        addMarker(placeData); // Agregar al mapa inmediatamente
 
                         map.closePopup(currentPopup);
                         currentPopup = null;
@@ -89,5 +77,27 @@ document.addEventListener("DOMContentLoaded", () => {
                 input.focus();
             }
         }, 100);
+    });
+
+    function addMarker(placeData) {
+        const { nombre, coordenadas } = placeData;
+        const marker = L.marker([coordenadas.lat, coordenadas.lng], { draggable: true })
+            .addTo(map)
+            .bindPopup(`<b>${nombre}</b><br>(Arrástrame para mover)`);
+
+        marker.on("dragend", (event) => {
+            const newCoords = event.target.getLatLng();
+            const updatedData = {
+                nombre: nombre,
+                coordenadas: { lat: newCoords.lat, lng: newCoords.lng }
+            };
+
+            ipcRenderer.send("update-location", updatedData);
+        });
+    }
+
+    // Cargar ubicaciones guardadas
+    ipcRenderer.on("load-locations", (event, locations) => {
+        locations.forEach(addMarker);
     });
 });
