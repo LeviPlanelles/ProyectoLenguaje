@@ -1,5 +1,5 @@
 {
-  "name": "proyecto",
+  "name": "proyectolenguaje",
   "version": "1.0.0",
   "description": "",
   "main": "main.js",
@@ -11,17 +11,14 @@
     "type": "git",
     "url": "git+https://github.com/LeviPlanelles/ProyectoLenguaje.git"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/LeviPlanelles/ProyectoLenguaje/issues"
   },
   "homepage": "https://github.com/LeviPlanelles/ProyectoLenguaje#readme",
+  "keywords": [],
   "devDependencies": {
-    "electron": "^35.1.2"
-  },
-  "dependencies": {
-    "leaflet": "^1.9.4"
+    "electron": "^36.2.0"
   }
 }
