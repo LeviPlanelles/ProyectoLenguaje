@@ -1,30 +1,36 @@
 [
   {
-    "nombre": "iglesia",
+    "nombre": "Playa del arenal",
     "coordenadas": {
-      "lat": 38.78911475070081,
-      "lng": 0.1635074615478516
+      "lat": 38.77282219020057,
+      "lng": 0.18758281685488323
+    },
+    "pregunta": "Es una playa artificial?",
+    "respuestas": {
+      "opciones": [
+        "Si",
+        "No",
+        "Puede ser",
+        "Pobes"
+      ],
+      "correcta": 2
     }
   },
   {
-    "nombre": "Madrid",
+    "nombre": "Iglesia de javea",
     "coordenadas": {
-      "lat": 40.299570021920246,
-      "lng": -3.6474609375000004
-    }
-  },
-  {
-    "nombre": "ibiza",
-    "coordenadas": {
-      "lat": 39.0023422714285,
-      "lng": 1.4447021484375
-    }
-  },
-  {
-    "nombre": "Levi",
-    "coordenadas": {
-      "lat": 38.787608050805126,
-      "lng": 0.1735067367553711
+      "lat": 38.78903107166417,
+      "lng": 0.1634645462036133
+    },
+    "pregunta": "fewargr",
+    "respuestas": {
+      "opciones": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "correcta": 2
     }
   }
 ]

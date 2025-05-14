@@ -52,17 +52,48 @@ const writeLocations = (data) => {
 };
 
 // Guardar un nuevo punto
-ipcMain.on("save-location", (event, newLocation) => {
+ipcMain.on('save-location', (event, newLocation) => {
     const locations = readLocations();
     locations.push(newLocation);
     writeLocations(locations);
+    event.reply('location-saved');
 });
 
-// Actualizar la ubicación de un marcador
-ipcMain.on("update-location", (event, updatedLocation) => {
+ipcMain.on('update-location', (event, updatedLocation) => {
     let locations = readLocations();
     locations = locations.map((loc) =>
         loc.nombre === updatedLocation.nombre ? updatedLocation : loc
     );
     writeLocations(locations);
+    event.reply('location-updated');
+});
+
+ipcMain.on('update-question', (event, data) => {
+    let locations = readLocations();
+    locations = locations.map(loc => {
+        if (loc.nombre === data.nombre) {
+            return {
+                ...loc,
+                pregunta: data.pregunta,
+                respuestas: data.respuestas
+            };
+        }
+        return loc;
+    });
+    writeLocations(locations);
+    event.reply('question-updated');
+});
+
+// Eliminar un punto
+ipcMain.on("delete-location", (event, locationName) => {
+    let locations = readLocations();
+    locations = locations.filter(loc => loc.nombre !== locationName);
+    writeLocations(locations);
+    event.reply('location-deleted', locations);
+});
+
+// Obtener ubicaciones
+ipcMain.on('get-locations', (event) => {
+    const locations = readLocations();
+    event.returnValue = locations;
 });
