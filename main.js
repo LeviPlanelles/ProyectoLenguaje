@@ -1,99 +1,159 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
-const fs = require("fs");
-const path = require("path");
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const path = require('path');
+const fs = require('fs');
 
 let mainWindow;
+let selectedJsonPath = '';
 
-app.whenReady().then(() => {
+function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1200,
+        height: 800,
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false,
+            contextIsolation: false
         }
     });
 
-    mainWindow.loadFile("index.html");
-    //mainWindow.webContents.openDevTools();
-
-    // Cuando la ventana esté lista, enviar las ubicaciones guardadas
-    mainWindow.webContents.once("did-finish-load", () => {
-        const locations = readLocations();
-        mainWindow.webContents.send("load-locations", locations);
-    });
-});
-
-const locationsPath = path.join(__dirname, "locations");
-const filePath = path.join(locationsPath, "locations.json");
-
-if (!fs.existsSync(locationsPath)) {
-    fs.mkdirSync(locationsPath);
+    mainWindow.loadFile('index.html');
 }
 
-const readLocations = () => {
-    try {
-        if (fs.existsSync(filePath)) {
-            const data = fs.readFileSync(filePath, "utf8");
-            return JSON.parse(data);
-        }
-    } catch (error) {
-        console.error("Error al leer el archivo:", error);
-    }
-    return [];
-};
-
-const writeLocations = (data) => {
-    try {
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
-    } catch (error) {
-        console.error("Error al escribir en el archivo:", error);
-    }
-};
-
-// Guardar un nuevo punto
-ipcMain.on('save-location', (event, newLocation) => {
-    const locations = readLocations();
-    locations.push(newLocation);
-    writeLocations(locations);
-    event.reply('location-saved');
+app.whenReady().then(() => {
+    createWindow();
+    
+    // Mostrar diálogo de selección al inicio
+    showJsonSelectionDialog();
 });
 
+function showJsonSelectionDialog() {
+    const locationsDir = path.join(__dirname, 'locations');
+    
+    // Crear el directorio si no existe
+    if (!fs.existsSync(locationsDir)) {
+        fs.mkdirSync(locationsDir);
+    }
+    
+    // Leer archivos JSON existentes
+    const jsonFiles = fs.readdirSync(locationsDir)
+        .filter(file => file.endsWith('.json'))
+        .map(file => ({
+            name: file.replace('.json', ''),
+            path: path.join(locationsDir, file)
+        }));
+    
+    // Enviar lista de archivos al renderer
+    mainWindow.webContents.on('did-finish-load', () => {
+        mainWindow.webContents.send('json-files', jsonFiles);
+    });
+}
+
+// Manejar la creación de nuevo archivo JSON
+ipcMain.on('create-json', (event, locationName) => {
+    const fileName = `${locationName}.json`;
+    const filePath = path.join(__dirname, 'locations', fileName);
+    
+    fs.writeFileSync(filePath, '[]');
+    selectedJsonPath = filePath;
+    event.reply('json-selected', selectedJsonPath);
+});
+
+// Manejar la selección de archivo JSON existente
+ipcMain.on('select-json', (event, filePath) => {
+    selectedJsonPath = filePath;
+    event.reply('json-selected', selectedJsonPath);
+});
+
+// Modificar los eventos existentes para usar selectedJsonPath
+// Eliminar esta duplicación del evento save-location
+ipcMain.on('save-location', (event, locationData) => {
+    try {
+        if (!selectedJsonPath) {
+            console.error('No hay un archivo JSON seleccionado');
+            return;
+        }
+        const locations = JSON.parse(fs.readFileSync(selectedJsonPath, 'utf8'));
+        locations.push(locationData);
+        fs.writeFileSync(selectedJsonPath, JSON.stringify(locations, null, 2));
+        event.reply('location-saved');
+    } catch (error) {
+        console.error('Error al guardar la ubicación:', error);
+    }
+});
+
+// Eliminar estas líneas que hacen referencia a locations.json
+// const locationsPath = path.join(__dirname, "locations");
+// const filePath = path.join(locationsPath, "locations.json");
+
+// Actualizar los otros eventos para usar selectedJsonPath
 ipcMain.on('update-location', (event, updatedLocation) => {
-    let locations = readLocations();
-    locations = locations.map((loc) =>
-        loc.nombre === updatedLocation.nombre ? updatedLocation : loc
-    );
-    writeLocations(locations);
-    event.reply('location-updated');
+    try {
+        if (!selectedJsonPath) {
+            console.error('No hay un archivo JSON seleccionado');
+            return;
+        }
+        const locations = JSON.parse(fs.readFileSync(selectedJsonPath, 'utf8'));
+        const updatedLocations = locations.map((loc) =>
+            loc.nombre === updatedLocation.nombre ? updatedLocation : loc
+        );
+        fs.writeFileSync(selectedJsonPath, JSON.stringify(updatedLocations, null, 2));
+        event.reply('location-updated');
+    } catch (error) {
+        console.error('Error al actualizar la ubicación:', error);
+    }
 });
 
 ipcMain.on('update-question', (event, data) => {
-    let locations = readLocations();
-    locations = locations.map(loc => {
-        if (loc.nombre === data.nombre) {
-            return {
-                ...loc,
-                pregunta: data.pregunta,
-                respuestas: data.respuestas
-            };
+    try {
+        if (!selectedJsonPath) {
+            console.error('No hay un archivo JSON seleccionado');
+            return;
         }
-        return loc;
-    });
-    writeLocations(locations);
-    event.reply('question-updated');
+        const locations = JSON.parse(fs.readFileSync(selectedJsonPath, 'utf8'));
+        const updatedLocations = locations.map(loc => {
+            if (loc.nombre === data.nombre) {
+                return {
+                    ...loc,
+                    pregunta: data.pregunta,
+                    respuestas: data.respuestas
+                };
+            }
+            return loc;
+        });
+        fs.writeFileSync(selectedJsonPath, JSON.stringify(updatedLocations, null, 2));
+        event.reply('question-updated');
+    } catch (error) {
+        console.error('Error al actualizar la pregunta:', error);
+    }
 });
 
-// Eliminar un punto
 ipcMain.on("delete-location", (event, locationName) => {
-    let locations = readLocations();
-    locations = locations.filter(loc => loc.nombre !== locationName);
-    writeLocations(locations);
-    event.reply('location-deleted', locations);
+    try {
+        if (!selectedJsonPath) {
+            console.error('No hay un archivo JSON seleccionado');
+            return;
+        }
+        const locations = JSON.parse(fs.readFileSync(selectedJsonPath, 'utf8'));
+        const updatedLocations = locations.filter(loc => loc.nombre !== locationName);
+        fs.writeFileSync(selectedJsonPath, JSON.stringify(updatedLocations, null, 2));
+        event.reply('location-deleted', updatedLocations);
+    } catch (error) {
+        console.error('Error al eliminar la ubicación:', error);
+        event.reply('location-deleted', []);
+    }
 });
 
 // Obtener ubicaciones
+// Modificar el evento get-locations para usar el archivo seleccionado
 ipcMain.on('get-locations', (event) => {
-    const locations = readLocations();
-    event.returnValue = locations;
+    try {
+        if (!selectedJsonPath) {
+            event.returnValue = [];
+            return;
+        }
+        const locations = JSON.parse(fs.readFileSync(selectedJsonPath, 'utf8'));
+        event.returnValue = locations;
+    } catch (error) {
+        console.error('Error al obtener las ubicaciones:', error);
+        event.returnValue = [];
+    }
 });

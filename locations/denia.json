@@ -1,0 +1,19 @@
+[
+  {
+    "nombre": "Puerto de denia",
+    "coordenadas": {
+      "lat": 38.841875889040004,
+      "lng": 0.11311599178391864
+    },
+    "pregunta": "es feo?",
+    "respuestas": {
+      "opciones": [
+        "feo",
+        "si",
+        "si",
+        "si"
+      ],
+      "correcta": 2
+    }
+  }
+]

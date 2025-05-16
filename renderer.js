@@ -1,10 +1,127 @@
 const { ipcRenderer } = require('electron');
 
+// Variables globales
+let map;
+// Remove duplicate declaration since it's already declared at the top
+// Remove duplicate markers declaration since it's already declared later in the file
+
 // Inicializar el mapa
-const map = L.map('map').setView([38.7849, 0.1802], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+function initMap() {
+    map = L.map('map').setView([38.7849, 0.1802], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Añadir el evento click al mapa después de inicializarlo
+    map.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+
+        if (currentPopup) {
+            map.closePopup(currentPopup);
+        }
+
+        currentPopup = L.popup()
+            .setLatLng(e.latlng)
+            .setContent(`
+                <input type="text" id="place-name" placeholder="Nombre del lugar" style="width: 100%; padding: 5px; margin-bottom: 5px;">
+                <button id="save-place" style="width: 100%; padding: 5px; background: #007bff; color: white; border: none; cursor: pointer;">Guardar</button>
+            `)
+            .openOn(map);
+
+        setTimeout(() => {
+            const input = document.getElementById('place-name');
+            const button = document.getElementById('save-place');
+
+            if (input && button) {
+                const savePoint = () => {
+                    const placeName = input.value.trim();
+                    if (placeName !== '') {
+                        const placeData = {
+                            nombre: placeName,
+                            coordenadas: { lat, lng }
+                        };
+
+                        ipcRenderer.send('save-location', placeData);
+                        addMarker(placeData);
+                        map.closePopup(currentPopup);
+                        currentPopup = null;
+                    } else {
+                        alert('Por favor, introduce un nombre.');
+                    }
+                };
+
+                button.addEventListener('click', savePoint);
+                input.addEventListener('keypress', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        savePoint();
+                    }
+                });
+
+                input.focus();
+            }
+        }, 100);
+    });
+}
+
+// Inicializar la aplicación
+document.addEventListener('DOMContentLoaded', () => {
+    initMap();
+    
+    // Elementos del DOM
+    const dialog = document.getElementById('initial-dialog');
+    const existingFiles = document.getElementById('existing-files');
+    const newLocationInput = document.getElementById('new-location-name');
+    const createNewBtn = document.getElementById('create-new');
+    
+    // Manejar la creación de nueva localidad
+    createNewBtn.addEventListener('click', () => {
+        const locationName = newLocationInput.value.trim();
+        if (locationName) {
+            ipcRenderer.send('create-json', locationName);
+        }
+    });
+});
+
+// Manejar la lista de archivos JSON
+ipcRenderer.on('json-files', (event, files) => {
+    console.log('Archivos JSON recibidos:', files);
+    const existingFiles = document.getElementById('existing-files');
+    existingFiles.innerHTML = '';
+    
+    files.forEach(file => {
+        const button = document.createElement('button');
+        button.textContent = file.name;
+        button.onclick = () => {
+            ipcRenderer.send('select-json', file.path);
+        };
+        existingFiles.appendChild(button);
+    });
+});
+
+// Manejar la selección del JSON
+ipcRenderer.on('json-selected', (event, jsonPath) => {
+    console.log('JSON seleccionado:', jsonPath);
+    document.getElementById('initial-dialog').style.display = 'none';
+    
+    // Cargar las ubicaciones
+    const locations = ipcRenderer.sendSync('get-locations');
+    console.log('Ubicaciones cargadas:', locations);
+    
+    // Limpiar marcadores existentes
+    Object.values(markers).forEach(marker => {
+        if (marker && typeof marker.remove === 'function') {
+            marker.remove();
+        }
+    });
+    
+    // Reiniciar el objeto de marcadores
+    Object.keys(markers).forEach(key => delete markers[key]);
+    
+    // Actualizar el mapa y la lista
+    locations.forEach(addMarker);
+    updateLocationsList(locations);
+});
 
 let currentPopup = null;
 const markers = {};
@@ -195,61 +312,6 @@ function addMarker(placeData) {
 
     return marker;
 }
-
-// Eliminar el segundo evento click del mapa y mantener solo este
-map.on('click', (e) => {
-    const { lat, lng } = e.latlng;
-
-    if (currentPopup) {
-        map.closePopup(currentPopup);
-    }
-
-    currentPopup = L.popup()
-        .setLatLng(e.latlng)
-        .setContent(`
-            <input type="text" id="place-name" placeholder="Nombre del lugar" style="width: 100%; padding: 5px; margin-bottom: 5px;">
-            <button id="save-place" style="width: 100%; padding: 5px; background: #007bff; color: white; border: none; cursor: pointer;">Guardar</button>
-        `)
-        .openOn(map);
-
-    setTimeout(() => {
-        const input = document.getElementById('place-name');
-        const button = document.getElementById('save-place');
-
-        if (input && button) {
-            const savePoint = () => {
-                const placeName = input.value.trim();
-                if (placeName !== '') {
-                    const placeData = {
-                        nombre: placeName,
-                        coordenadas: { lat, lng }
-                    };
-
-                    ipcRenderer.send('save-location', placeData);
-                    addMarker(placeData);
-                    
-                    const locations = ipcRenderer.sendSync('get-locations');
-                    updateLocationsList(locations);
-                    
-                    map.closePopup(currentPopup);
-                    currentPopup = null;
-                } else {
-                    alert('Por favor, introduce un nombre.');
-                }
-            };
-
-            button.addEventListener('click', savePoint);
-            input.addEventListener('keypress', (event) => {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    savePoint();
-                }
-            });
-
-            input.focus();
-        }
-    }, 100);
-});
 
 // Escuchar eventos del proceso principal
 ipcRenderer.on('load-locations', (event, locations) => {

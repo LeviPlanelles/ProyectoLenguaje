@@ -1,0 +1,53 @@
+[
+  {
+    "nombre": "Playa del arenal",
+    "coordenadas": {
+      "lat": 38.7730399859414,
+      "lng": 0.18985817798651272
+    },
+    "pregunta": "Es una playa artificial?",
+    "respuestas": {
+      "opciones": [
+        "Si",
+        "No",
+        "Mi culo",
+        "Pobes"
+      ],
+      "correcta": 0
+    }
+  },
+  {
+    "nombre": "Iglesia de javea",
+    "coordenadas": {
+      "lat": 38.787943361195,
+      "lng": 0.16376505853047618
+    },
+    "pregunta": "fewargr",
+    "respuestas": {
+      "opciones": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "correcta": 2
+    }
+  },
+  {
+    "nombre": "Nose",
+    "coordenadas": {
+      "lat": 38.77559945053476,
+      "lng": 0.1659618235600391
+    },
+    "pregunta": "nose?",
+    "respuestas": {
+      "opciones": [
+        "no",
+        "si",
+        "nose",
+        "puede ser"
+      ],
+      "correcta": 1
+    }
+  }
+]

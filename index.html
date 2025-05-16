@@ -1,162 +1,30 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa con Leaflet</title>
+    <title>Mapa de Puntos</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        #map {
-            height: 100vh;
-            width: 100%;
-        }
-        #search-container {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            background: white;
-            padding: 5px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            display: flex;
-            gap: 5px;
-        }
-        #search-input {
-            padding: 5px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            width: 200px;
-        }
-        #search-btn {
-            padding: 5px 10px;
-            border: none;
-            background: #007bff;
-            color: white;
-            cursor: pointer;
-            border-radius: 3px;
-        }
-        #search-btn:hover {
-            background: #0056b3;
-        }
-        /* Estilos para la sidebar */
-        .sidebar {
-            position: absolute;
-            left: -300px;
-            top: 0;
-            width: 300px;
-            height: 100vh;
-            background: white;
-            z-index: 1001;
-            transition: left 0.3s ease;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .sidebar.active {
-            left: 0;
-        }
-
-        .toggle-btn {
-            position: absolute;
-            left: 310px;
-            top: 10px;
-            padding: 10px;
-            background: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        .location-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .location-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-        }
-
-        .location-item:hover {
-            background: #f5f5f5;
-        }
-
-        .location-details {
-            display: none;
-            padding: 10px;
-            background: #f9f9f9;
-            margin-top: 5px;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-        }
-
-        .location-details.active {
-            display: block;
-        }
-        .location-header span {
-            flex-grow: 1;
-            padding: 5px;
-        }
-        .location-header span:hover {
-            background: #f0f0f0;
-            border-radius: 3px;
-        }
-        
-        .location-details input,
-        .location-details textarea {
-            width: 100%;
-            margin-bottom: 10px;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-        }
-
-        .answer-container {
-            margin-bottom: 10px;
-        }
-
-        .answer-container label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .save-button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 3px;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        .save-button:hover {
-            background: #0056b3;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="search-container">
-        <input type="text" id="search-input" placeholder="Buscar ubicación...">
-        <button id="search-btn">Buscar</button>
+    <!-- Diálogo de selección inicial -->
+    <div id="initial-dialog" class="dialog">
+        <h2>Selecciona una localidad</h2>
+        <div id="existing-files"></div>
+        <div class="new-location">
+            <input type="text" id="new-location-name" placeholder="Nombre de nueva localidad">
+            <button id="create-new">Crear nueva localidad</button>
+        </div>
     </div>
-    <div id="map"></div>
-    <div class="sidebar">
-        <button class="toggle-btn">☰</button>
-        <h2>Ubicaciones</h2>
-        <ul class="location-list" id="location-list"></ul>
+
+    <!-- Contenido del mapa -->
+    <div class="container">
+        <div class="sidebar">
+            <button class="toggle-btn">☰</button>
+            <div id="location-list"></div>
+        </div>
+        <div id="map"></div>
     </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="renderer.js"></script>
 </body>
