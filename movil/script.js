@@ -37,23 +37,19 @@ async function startWithJson(jsonName) {
     }
 
     try {
-        // Modificar la ruta para usar la ruta correcta
+        // Modificar la ruta para usar una ruta relativa desde el archivo HTML
         const response = await fetch(`../locations/${jsonName}.json`);
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }
         
         const locations = await response.json();
-        console.log('Datos cargados:', locations); // Para depuración
         
-        // Ocultar selector y mostrar mapa
         document.getElementById('selector').classList.add('hidden');
         document.getElementById('map').style.display = 'block';
         
-        // Inicializar mapa y esperar a que esté listo
         map = initMap();
         
-        // Cargar los puntos inmediatamente
         locations.forEach(location => {
             if (location.coordenadas && location.coordenadas.lat && location.coordenadas.lng) {
                 const marker = L.marker([location.coordenadas.lat, location.coordenadas.lng]);
@@ -70,8 +66,7 @@ async function startWithJson(jsonName) {
         }
     } catch (error) {
         console.error('Error al cargar los puntos:', error);
-        console.error('Detalles del error:', error.message);
-        alert('Error al cargar los puntos. Asegúrate de que los archivos JSON estén en la carpeta locations.');
+        alert('Error al cargar los puntos. Verifica que los archivos JSON estén en la carpeta locations junto al archivo index.html');
     }
 }
 
