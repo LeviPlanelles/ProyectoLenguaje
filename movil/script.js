@@ -1,5 +1,6 @@
 let map;
 let markers = [];
+let failCounter = 0; // Contador de fallos
 
 // Inicializar el mapa
 function initMap() {
@@ -7,6 +8,33 @@ function initMap() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
+
+    // Añadir geolocalización
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            // Crear un marcador personalizado para la ubicación actual
+            const userMarker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'user-location-marker',
+                    html: '<div class="pulse"></div>',
+                    iconSize: [20, 20]
+                })
+            }).addTo(map);
+
+            userMarker.bindPopup('Tu ubicación actual').openPopup();
+            map.setView([lat, lng], 13);
+        }, function(error) {
+            console.error('Error al obtener la ubicación:', error);
+            alert('No se pudo obtener tu ubicación actual.');
+        });
+    } else {
+        console.error('Geolocalización no disponible');
+        alert('Tu dispositivo no soporta geolocalización.');
+    }
+
     return map;
 }
 
@@ -37,7 +65,6 @@ async function startWithJson(jsonName) {
     }
 
     try {
-        // Modificar la ruta para usar una ruta relativa desde el archivo HTML
         const response = await fetch(`../locations/${jsonName}.json`);
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
@@ -64,6 +91,10 @@ async function startWithJson(jsonName) {
             const group = new L.featureGroup(markers);
             map.fitBounds(group.getBounds());
         }
+        
+        // Reiniciar el contador de fallos al iniciar
+        failCounter = 0;
+        updateFailCounter();
     } catch (error) {
         console.error('Error al cargar los puntos:', error);
         alert('Error al cargar los puntos. Verifica que los archivos JSON estén en la carpeta locations junto al archivo index.html');
@@ -86,7 +117,6 @@ function createPopupContent(location) {
         container.appendChild(question);
 
         if (location.respuestas && location.respuestas.opciones) {
-            // Cambiar localStorage por sessionStorage
             const pointId = `point_${location.nombre.replace(/\s+/g, '_')}`;
             const hasBeenAttempted = sessionStorage.getItem(pointId);
 
@@ -97,10 +127,8 @@ function createPopupContent(location) {
                     answerOption.textContent = opcion;
                     
                     answerOption.addEventListener('click', () => {
-                        // Usar sessionStorage en lugar de localStorage
                         sessionStorage.setItem(pointId, 'true');
                         
-                        // Deshabilitar todos los botones de respuesta
                         container.querySelectorAll('.answer-option').forEach(opt => {
                             opt.style.pointerEvents = 'none';
                             opt.style.opacity = '0.7';
@@ -109,6 +137,11 @@ function createPopupContent(location) {
                         const isCorrect = index === location.respuestas.correcta;
                         answerOption.classList.add('selected');
                         answerOption.classList.add(isCorrect ? 'correct' : 'incorrect');
+                        
+                        if (!isCorrect) {
+                            failCounter++;
+                            updateFailCounter();
+                        }
                         
                         const resultMessage = document.createElement('div');
                         resultMessage.className = `result-message ${isCorrect ? 'correct' : 'incorrect'}`;
@@ -125,7 +158,6 @@ function createPopupContent(location) {
                     container.appendChild(answerOption);
                 });
             } else {
-                // Si ya se intentó, mostrar mensaje
                 const attemptedMessage = document.createElement('div');
                 attemptedMessage.className = 'result-message';
                 attemptedMessage.textContent = 'Ya has intentado responder esta pregunta. Cierra el navegador para intentarlo de nuevo.';
@@ -135,6 +167,26 @@ function createPopupContent(location) {
     }
 
     return container;
+}
+
+// Función para actualizar el contador en la interfaz
+function updateFailCounter() {
+    let counterElement = document.getElementById('fail-counter');
+    if (!counterElement) {
+        counterElement = document.createElement('div');
+        counterElement.id = 'fail-counter';
+        counterElement.style.position = 'fixed';
+        counterElement.style.bottom = '20px';
+        counterElement.style.right = '20px';
+        counterElement.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
+        counterElement.style.color = 'white';
+        counterElement.style.padding = '10px 20px';
+        counterElement.style.borderRadius = '5px';
+        counterElement.style.fontWeight = 'bold';
+        counterElement.style.zIndex = '1000';
+        document.body.appendChild(counterElement);
+    }
+    counterElement.textContent = `Fallos: ${failCounter}`;
 }
 
 // Inicializar la aplicación
