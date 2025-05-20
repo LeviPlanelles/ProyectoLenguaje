@@ -3,6 +3,7 @@
 <head>
     <title>Mapa de Puntos</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -30,12 +31,57 @@
 </body>
 </html>
 <style>
+    body {
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    .dialog {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .dialog h2 {
+        margin-top: 0;
+        color: #333;
+    }
+
+    .new-location input {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-right: 10px;
+    }
+
+    .new-location button {
+        padding: 8px 15px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .new-location button:hover {
+        background: #45a049;
+    }
+
     .location-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 5px;
+        padding: 8px;
         cursor: pointer;
+        border-radius: 4px;
+        margin-bottom: 5px;
+        background: #f9f9f9;
+    }
+
+    .location-header:hover {
+        background: #f0f0f0;
     }
 
     .location-buttons {
@@ -44,11 +90,12 @@
     }
 
     .edit-btn, .delete-btn {
-        padding: 3px 8px;
+        padding: 5px 10px;
         border: none;
-        border-radius: 3px;
+        border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
+        transition: all 0.2s ease;
     }
 
     .edit-btn {

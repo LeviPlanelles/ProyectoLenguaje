@@ -66,5 +66,22 @@
       ],
       "correcta": 0
     }
+  },
+  {
+    "nombre": "Instituto",
+    "coordenadas": {
+      "lat": 38.78861199463839,
+      "lng": 0.17826898521386972
+    },
+    "pregunta": "Hay algun almuno que le guste estudiar",
+    "respuestas": {
+      "opciones": [
+        "SI",
+        "No",
+        "NO",
+        "NO, pero con enfasis"
+      ],
+      "correcta": 3
+    }
   }
 ]
