@@ -51,27 +51,10 @@
     }
   },
   {
-    "nombre": "Casa Peter",
-    "coordenadas": {
-      "lat": 38.75157730808474,
-      "lng": 0.20487251972424847
-    },
-    "pregunta": "Esta es la casa de peter?",
-    "respuestas": {
-      "opciones": [
-        "Si",
-        "No",
-        "No se, preguntale a peter",
-        "Wi"
-      ],
-      "correcta": 0
-    }
-  },
-  {
     "nombre": "Instituto",
     "coordenadas": {
-      "lat": 38.78861199463839,
-      "lng": 0.17826898521386972
+      "lat": 38.78827827161343,
+      "lng": 0.17801293472026192
     },
     "pregunta": "Hay algun almuno que le guste estudiar",
     "respuestas": {

@@ -1,201 +1,225 @@
+// Variables globales
 let map;
-let markers = [];
-let failCounter = 0; // Contador de fallos
+let userMarker;
+let userCircle;
+const INTERACTION_RADIUS = 100; // Radio de interacción en metros
+let answeredQuestions = new Set();
 
-// Inicializar el mapa
-function initMap() {
-    map = L.map('map').setView([38.7849, 0.1802], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+// Inicialización del mapa
+document.addEventListener('DOMContentLoaded', function() {
+    // Cargar el selector de JSON
+    loadJSONSelector();
 
-    // Añadir geolocalización
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            
-            // Crear un marcador personalizado para la ubicación actual
-            const userMarker = L.marker([lat, lng], {
-                icon: L.divIcon({
-                    className: 'user-location-marker',
-                    html: '<div class="pulse"></div>',
-                    iconSize: [20, 20]
-                })
-            }).addTo(map);
+    // Evento para iniciar la aventura
+    document.getElementById('start-button').addEventListener('click', startAdventure);
+});
 
-            userMarker.bindPopup('Tu ubicación actual').openPopup();
-            map.setView([lat, lng], 13);
-        }, function(error) {
-            console.error('Error al obtener la ubicación:', error);
-            alert('No se pudo obtener tu ubicación actual.');
-        });
-    } else {
-        console.error('Geolocalización no disponible');
-        alert('Tu dispositivo no soporta geolocalización.');
-    }
-
-    return map;
+function loadJSONSelector() {
+    const select = document.getElementById('json-select');
+    fetch('../locations/denia.json')
+        .then(response => {
+            if (!response.ok) throw new Error('Error cargando denia.json');
+            return response;
+        })
+        .then(() => {
+            select.innerHTML += `<option value="../locations/denia.json">Denia</option>`;
+        })
+        .catch(error => console.error('Error cargando denia.json:', error));
+    
+    fetch('../locations/javea.json')
+        .then(response => {
+            if (!response.ok) throw new Error('Error cargando javea.json');
+            return response;
+        })
+        .then(() => {
+            select.innerHTML += `<option value="../locations/javea.json">Javea</option>`;
+        })
+        .catch(error => console.error('Error cargando javea.json:', error));
 }
 
-// Cargar la lista de archivos JSON disponibles
-async function loadJsonFiles() {
-    try {
-        const jsonFiles = ['javea', 'denia'];
-        
-        const select = document.getElementById('json-select');
-        select.innerHTML = '<option value="">Elige una localidad</option>';
-        
-        jsonFiles.forEach(file => {
-            const option = document.createElement('option');
-            option.value = file;
-            option.textContent = file.charAt(0).toUpperCase() + file.slice(1);
-            select.appendChild(option);
-        });
-    } catch (error) {
-        console.error('Error al cargar los archivos JSON:', error);
-    }
-}
-
-// Iniciar la aplicación con el JSON seleccionado
-async function startWithJson(jsonName) {
-    if (!jsonName) {
+function startAdventure() {
+    const selectedFile = document.getElementById('json-select').value;
+    if (!selectedFile) {
         alert('Por favor, selecciona una localidad');
         return;
     }
 
-    try {
-        const response = await fetch(`../locations/${jsonName}.json`);
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
-        
-        const locations = await response.json();
-        
-        document.getElementById('selector').classList.add('hidden');
-        document.getElementById('map').style.display = 'block';
-        
-        map = initMap();
-        
-        locations.forEach(location => {
-            if (location.coordenadas && location.coordenadas.lat && location.coordenadas.lng) {
-                const marker = L.marker([location.coordenadas.lat, location.coordenadas.lng]);
-                const popupContent = createPopupContent(location);
-                marker.bindPopup(popupContent);
-                marker.addTo(map);
-                markers.push(marker);
-            }
+    // Ocultar selector y mostrar mapa
+    document.getElementById('selector').style.display = 'none';
+    document.getElementById('map').style.display = 'block';
+
+    // Inicializar mapa
+    initMap();
+
+    // Cargar puntos y comenzar seguimiento de ubicación
+    loadJSONData(selectedFile);
+    initLocationTracking();
+}
+
+function initMap() {
+    map = L.map('map').setView([0, 0], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+}
+
+function initLocationTracking() {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.watchPosition(updateUserLocation, handleLocationError, {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 5000
         });
-
-        if (markers.length > 0) {
-            const group = new L.featureGroup(markers);
-            map.fitBounds(group.getBounds());
-        }
-        
-        // Reiniciar el contador de fallos al iniciar
-        failCounter = 0;
-        updateFailCounter();
-    } catch (error) {
-        console.error('Error al cargar los puntos:', error);
-        alert('Error al cargar los puntos. Verifica que los archivos JSON estén en la carpeta locations junto al archivo index.html');
+    } else {
+        alert('La geolocalización no está disponible en tu dispositivo');
     }
 }
 
-function createPopupContent(location) {
-    const container = document.createElement('div');
-    container.className = 'popup-content';
+function updateUserLocation(position) {
+    const { latitude, longitude } = position.coords;
+    
+    // Actualizar o crear el marcador del usuario
+    if (!userMarker) {
+        userMarker = L.marker([latitude, longitude], {
+            icon: L.divIcon({
+                className: 'user-location-marker',
+                html: '<div class="pulse"></div>'
+            })
+        }).addTo(map);
+        map.setView([latitude, longitude], 15);
+    } else {
+        userMarker.setLatLng([latitude, longitude]);
+    }
 
-    const title = document.createElement('div');
-    title.className = 'popup-title';
-    title.textContent = location.nombre;
-    container.appendChild(title);
+    // Actualizar o crear el círculo de interacción
+    if (!userCircle) {
+        userCircle = L.circle([latitude, longitude], {
+            radius: INTERACTION_RADIUS,
+            className: 'interaction-circle'
+        }).addTo(map);
+    } else {
+        userCircle.setLatLng([latitude, longitude]);
+    }
 
-    if (location.pregunta) {
-        const question = document.createElement('div');
-        question.className = 'popup-question';
-        question.textContent = location.pregunta;
-        container.appendChild(question);
+    checkPointsInRange(latitude, longitude);
+}
 
-        if (location.respuestas && location.respuestas.opciones) {
-            const pointId = `point_${location.nombre.replace(/\s+/g, '_')}`;
-            const hasBeenAttempted = sessionStorage.getItem(pointId);
+function handleLocationError(error) {
+    console.error('Error al obtener la ubicación:', error);
+    alert('No se pudo obtener tu ubicación. Por favor, verifica los permisos de ubicación.');
+}
 
-            if (!hasBeenAttempted) {
-                location.respuestas.opciones.forEach((opcion, index) => {
-                    const answerOption = document.createElement('div');
-                    answerOption.className = 'answer-option';
-                    answerOption.textContent = opcion;
-                    
-                    answerOption.addEventListener('click', () => {
-                        sessionStorage.setItem(pointId, 'true');
-                        
-                        container.querySelectorAll('.answer-option').forEach(opt => {
-                            opt.style.pointerEvents = 'none';
-                            opt.style.opacity = '0.7';
-                        });
-                        
-                        const isCorrect = index === location.respuestas.correcta;
-                        answerOption.classList.add('selected');
-                        answerOption.classList.add(isCorrect ? 'correct' : 'incorrect');
-                        
-                        if (!isCorrect) {
-                            failCounter++;
-                            updateFailCounter();
-                        }
-                        
-                        const resultMessage = document.createElement('div');
-                        resultMessage.className = `result-message ${isCorrect ? 'correct' : 'incorrect'}`;
-                        resultMessage.textContent = isCorrect ? 
-                            '¡Correcto!' : 'Incorrecto. ¡Inténtalo de nuevo después de cerrar el navegador!';
-                        
-                        const existingMessage = container.querySelector('.result-message');
-                        if (existingMessage) {
-                            container.removeChild(existingMessage);
-                        }
-                        container.appendChild(resultMessage);
-                    });
+function enableMarkerInteraction(marker) {
+    marker.off('click'); // Eliminar handlers anteriores
+    marker.on('click', function(e) {
+        marker.openPopup();
+    });
+}
 
-                    container.appendChild(answerOption);
-                });
+function checkPointsInRange(userLat, userLng) {
+    const markers = map._layers;
+    Object.values(markers).forEach(layer => {
+        if (layer instanceof L.Marker && layer !== userMarker) {
+            const markerLatLng = layer.getLatLng();
+            const distance = calculateDistance(
+                userLat, userLng,
+                markerLatLng.lat, markerLatLng.lng
+            );
+
+            if (distance > INTERACTION_RADIUS) {
+                layer.off('click');
+                layer.on('click', showRangeMessage);
+                layer.getElement()?.classList.add('point-disabled');
             } else {
-                const attemptedMessage = document.createElement('div');
-                attemptedMessage.className = 'result-message';
-                attemptedMessage.textContent = 'Ya has intentado responder esta pregunta. Cierra el navegador para intentarlo de nuevo.';
-                container.appendChild(attemptedMessage);
+                layer.getElement()?.classList.remove('point-disabled');
+                enableMarkerInteraction(layer);
             }
         }
-    }
-
-    return container;
-}
-
-// Función para actualizar el contador en la interfaz
-function updateFailCounter() {
-    let counterElement = document.getElementById('fail-counter');
-    if (!counterElement) {
-        counterElement = document.createElement('div');
-        counterElement.id = 'fail-counter';
-        counterElement.style.position = 'fixed';
-        counterElement.style.bottom = '20px';
-        counterElement.style.right = '20px';
-        counterElement.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
-        counterElement.style.color = 'white';
-        counterElement.style.padding = '10px 20px';
-        counterElement.style.borderRadius = '5px';
-        counterElement.style.fontWeight = 'bold';
-        counterElement.style.zIndex = '1000';
-        document.body.appendChild(counterElement);
-    }
-    counterElement.textContent = `Fallos: ${failCounter}`;
-}
-
-// Inicializar la aplicación
-document.addEventListener('DOMContentLoaded', () => {
-    loadJsonFiles();
-    
-    // Manejar el botón de inicio
-    document.getElementById('start-button').addEventListener('click', () => {
-        const selectedJson = document.getElementById('json-select').value;
-        startWithJson(selectedJson);
     });
-});
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c; // Distancia en metros
+}
+
+function showRangeMessage() {
+    const message = document.getElementById('rangeMessage');
+    message.style.display = 'block';
+    setTimeout(() => {
+        message.style.display = 'none';
+    }, 3000);
+}
+
+function loadJSONData(filename) {
+    fetch(filename)
+        .then(response => response.json())
+        .then(data => {
+            createMarkers(data);
+        })
+        .catch(error => {
+            console.error('Error cargando el JSON:', error);
+            alert('Error al cargar los datos de la localidad');
+        });
+}
+
+function createMarkers(data) {
+    data.forEach((point, index) => {
+        const marker = L.marker([point.coordenadas.lat, point.coordenadas.lng])
+            .addTo(map);
+        
+        marker.bindPopup(`
+            <h3>${point.nombre}</h3>
+            <p>${point.pregunta}</p>
+            <div class="options">
+                ${point.respuestas.opciones.map((opcion, optIndex) => `
+                    <button onclick="checkAnswer(${optIndex}, ${point.respuestas.correcta}, ${index})" 
+                            ${answeredQuestions.has(index) ? 'disabled' : ''}>
+                        ${opcion}
+                    </button>
+                `).join('')}
+            </div>
+            <div class="feedback-message"></div>
+        `);
+    });
+}
+
+function checkAnswer(selected, correct, pointId) {
+    if (answeredQuestions.has(pointId)) {
+        return;
+    }
+
+    const popup = document.querySelector('.leaflet-popup-content');
+    const buttons = popup.querySelectorAll('.options button');
+    const feedbackMessage = popup.querySelector('.feedback-message');
+
+    if (selected === correct) {
+        buttons[selected].classList.add('correct');
+        feedbackMessage.textContent = '¡Respuesta correcta!';
+        feedbackMessage.classList.add('correct', 'show');
+    } else {
+        buttons[selected].classList.add('incorrect');
+        buttons[correct].classList.add('correct');
+        feedbackMessage.textContent = 'Respuesta incorrecta';
+        feedbackMessage.classList.add('incorrect', 'show');
+    }
+
+    // Deshabilitar todos los botones después de responder
+    buttons.forEach(button => {
+        button.disabled = true;
+    });
+
+    // Marcar la pregunta como respondida
+    answeredQuestions.add(pointId);
+    localStorage.setItem('answeredQuestions', JSON.stringify([...answeredQuestions]));
+}

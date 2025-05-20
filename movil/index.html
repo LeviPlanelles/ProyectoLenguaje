@@ -1,575 +1,262 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa de Puntos</title>
+    <title>Aventura Móvil</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body, html {
+        body {
             margin: 0;
             padding: 0;
-            height: 100%;
             font-family: 'Poppins', sans-serif;
-            background-color: #f5f7fa;
+            background: #f5f7fa;
+        }
+        
+        #selector {
+            padding: 40px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
+        #selector h1 {
+            margin: 0 0 20px;
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        #json-select {
+            width: 80%;
+            max-width: 300px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+            font-size: 16px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #start-button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #start-button:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+        
         #map {
             height: 100vh;
             width: 100%;
             display: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-
-        .json-selector {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1000;
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 90%;
-            width: 400px;
-        }
-
-        .json-selector h2 {
-            color: #2c3e50;
-            margin-bottom: 1.5rem;
-            font-size: 1.8rem;
-            font-weight: 600;
-        }
-
-        .json-selector.hidden {
-            display: none;
-        }
-
-        select {
-            padding: 12px 15px;
-            margin: 15px 0;
-            width: 100%;
-            border-radius: 8px;
-            border: 2px solid #e2e8f0;
-            font-size: 1rem;
-            color: #4a5568;
-            background-color: #fff;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%234a5568' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: #4299e1;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
-        }
-
-        button {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 15px;
-            font-weight: 500;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            width: 100%;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
-            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
-        }
-
-        /* Estilos para los popups */
-        .popup-content {
-            padding: 1.5rem;
-            min-width: 250px;
-            background: #fff;
-            border-radius: 10px;
-        }
-
-        .popup-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #2d3748;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 0.5rem;
-        }
-
-        .popup-question {
-            margin: 1rem 0;
-            font-size: 1rem;
-            color: #4a5568;
-            line-height: 1.5;
-        }
-
-        .answer-option {
-            padding: 10px 15px;
-            margin: 8px 0;
-            background-color: #f7fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.95rem;
-        }
-
-        .answer-option:hover {
-            background-color: #edf2f7;
-            transform: translateX(5px);
-        }
-
-        .answer-option.selected.correct {
-            background-color: #48bb78;
-            color: white;
-            border-color: #38a169;
-        }
-
-        .answer-option.selected.incorrect {
-            background-color: #f56565;
-            color: white;
-            border-color: #e53e3e;
-        }
-
-        .result-message {
-            margin-top: 1rem;
-            padding: 12px 15px;
-            border-radius: 8px;
-            font-weight: 500;
-            font-size: 0.95rem;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .result-message.correct {
-            background-color: #c6f6d5;
-            color: #2f855a;
-            border: 1px solid #9ae6b4;
-        }
-
-        .result-message.incorrect {
-            background-color: #fed7d7;
-            color: #c53030;
-            border: 1px solid #feb2b2;
-        }
-
-        /* Ajustes para el popup de Leaflet */
-        .leaflet-popup-content-wrapper {
-            padding: 0;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .leaflet-popup-tip-container {
-            margin-top: -2px;
-        }
-
-        /* Estilos para el marcador de ubicación del usuario */
+        
         .user-location-marker {
-            position: relative;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #4f46e5;
+            border: 3px solid white;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.6);
         }
-
+        
         .pulse {
             width: 24px;
             height: 24px;
-            background: rgba(49, 130, 206, 0.7);
+            background: #4f46e5;
             border-radius: 50%;
             position: relative;
-            animation: pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.6);
         }
-
+        
+        .pulse::after {
+            content: '';
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            background: rgba(79, 70, 229, 0.3);
+            border-radius: 50%;
+            top: -12px;
+            left: -12px;
+            animation: pulse 2s infinite ease-out;
+        }
+        
         @keyframes pulse {
-            0% { transform: scale(0.8); opacity: 1; }
-            70% { transform: scale(2); opacity: 0.3; }
-            100% { transform: scale(0.8); opacity: 1; }
+            0% {
+                transform: scale(0.5);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
         }
-
-        .pulse:after {
-            content: '';
-            position: absolute;
-            top: 50%;
+        
+        .interaction-circle {
+            fill: rgba(79, 70, 229, 0.1);
+            stroke: rgba(79, 70, 229, 0.6);
+            stroke-width: 2;
+            stroke-dasharray: 10, 10;
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: 200; }
+        }
+        
+        .point-disabled {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+        
+        #rangeMessage {
+            position: fixed;
+            bottom: 30px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            width: 10px;
-            height: 10px;
-            background: #3182ce;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(49, 130, 206, 0.5);
-        }
-
-        #fail-counter {
-            background: linear-gradient(135deg, #f56565 0%, #c53030 100%) !important;
-            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.2);
-            border-radius: 12px !important;
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.95rem;
-            letter-spacing: 0.5px;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        /* Mejoras para el mapa y los marcadores */
-        .leaflet-container {
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .leaflet-marker-icon {
-            transition: transform 0.3s ease;
-        }
-
-        .leaflet-marker-icon:hover {
-            transform: scale(1.1);
-        }
-
-        .leaflet-popup {
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-
-        .leaflet-popup.leaflet-zoom-animated {
-            transform-origin: bottom center;
-        }
-
-        .leaflet-control-zoom {
-            border: none !important;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
-        }
-
-        .leaflet-control-zoom a {
-            background: white !important;
-            color: #4a5568 !important;
-            border: none !important;
-            width: 36px !important;
-            height: 36px !important;
-            line-height: 36px !important;
-            font-size: 18px !important;
-            transition: all 0.3s ease !important;
-        }
-
-        .leaflet-control-zoom a:hover {
-            background: #edf2f7 !important;
-            color: #2d3748 !important;
-        }
-
-        .leaflet-control-zoom-in {
-            border-radius: 8px 8px 0 0 !important;
-        }
-
-        .leaflet-control-zoom-out {
-            border-radius: 0 0 8px 8px !important;
-        }
-
-        .leaflet-control-attribution {
-            background: rgba(255, 255, 255, 0.9) !important;
-            padding: 4px 8px !important;
-            border-radius: 4px !important;
-            font-family: 'Poppins', sans-serif !important;
-            font-size: 11px !important;
-        }
-
-        /* Mejoras para los marcadores personalizados */
-        .custom-marker {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: #3182ce;
-            border: 3px solid white;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .custom-marker:hover {
-            transform: scale(1.1);
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Mejoras para los popups */
-        .leaflet-popup-content-wrapper {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(226, 232, 240, 0.8);
-        }
-
-        .leaflet-popup-tip {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-        }
-
-        .leaflet-popup-close-button {
-            color: #4a5568 !important;
-            font-size: 20px !important;
-            padding: 8px !important;
-            transition: all 0.3s ease !important;
-        }
-
-        .leaflet-popup-close-button:hover {
-            color: #e53e3e !important;
-            transform: rotate(90deg);
-        }
-
-        /* Animación para los marcadores al cargar */
-        @keyframes markerDrop {
-            0% { transform: translateY(-200px); opacity: 0; }
-            60% { transform: translateY(20px); opacity: 1; }
-            80% { transform: translateY(-10px); }
-            100% { transform: translateY(0); }
-        }
-
-        .marker-animation {
-            animation: markerDrop 0.6s ease forwards;
-        }
-
-        /* Mejoras para el marcador de ubicación del usuario */
-        .user-location-marker .pulse {
-            background: rgba(49, 130, 206, 0.2);
-            box-shadow: 0 0 0 rgba(49, 130, 206, 0.4);
-        }
-
-        .user-location-marker .pulse:after {
-            background: #3182ce;
-            box-shadow: 0 0 8px #3182ce;
-        }
-
-        #fail-counter {
-            background: linear-gradient(135deg, #f56565 0%, #c53030 100%) !important;
-            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.2);
-            border-radius: 12px !important;
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.95rem;
-            letter-spacing: 0.5px;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        /* Estilos mejorados para los puntos del mapa */
-        .map-point {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
-            border-radius: 50%;
-            border: 3px solid white;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-            position: relative;
-            cursor: pointer;
-        }
-
-        .map-point:before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 8px;
-            height: 8px;
-            background: white;
-            border-radius: 50%;
-            transition: all 0.3s ease;
-        }
-
-        .map-point:hover {
-            transform: scale(1.15);
-            box-shadow: 0 5px 15px rgba(49, 130, 206, 0.4);
-        }
-
-        .map-point:hover:before {
-            width: 12px;
-            height: 12px;
-        }
-
-        /* Estilos mejorados para las preguntas */
-        .question-container {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            max-width: 350px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .question-container:before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #4299e1, #3182ce);
-        }
-
-        .question-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        .question-text {
-            font-size: 1rem;
-            color: #4a5568;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-
-        .options-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .option-button {
-            padding: 12px 15px;
-            background: #f7fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-            color: #4a5568;
-            text-align: left;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .option-button:hover {
-            background: #edf2f7;
-            transform: translateX(5px);
-        }
-
-        .option-button.correct {
-            background: #48bb78;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.95);
             color: white;
-            border-color: #38a169;
-        }
-
-        .option-button.incorrect {
-            background: #f56565;
-            color: white;
-            border-color: #e53e3e;
-        }
-
-        .option-button:before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 4px;
-            background: #3182ce;
-            opacity: 0;
-            transition: all 0.3s ease;
-        }
-
-        .option-button:hover:before {
-            opacity: 1;
-        }
-
-        /* Animaciones para las preguntas */
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .question-container {
-            animation: slideUp 0.4s ease forwards;
-        }
-
-        /* Estilos para el feedback de respuesta */
-        .feedback {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 15px 25px;
+            border-radius: 10px;
             font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translate(-50%, 20px);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, 0);
+                opacity: 1;
+            }
+        }
+
+        .leaflet-popup-content {
+            font-family: 'Poppins', sans-serif;
+            padding: 10px;
+        }
+
+        .leaflet-popup-content h3 {
+            margin: 0 0 10px;
+            color: #1f2937;
+            font-size: 1.2em;
+        }
+
+        .leaflet-popup-content p {
+            margin: 0 0 15px;
+            color: #4b5563;
+        }
+
+        .options {
+            display: grid;
+            gap: 8px;
+        }
+
+        .options button {
+            background: #f3f4f6;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #1f2937;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .options button:hover {
+            background: #e5e7eb;
+            transform: translateY(-1px);
+        }
+        
+        .options button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #e2e2e2;
+            transform: none;
+        }
+
+        .options button:disabled:hover {
+            background: #e2e2e2;
+            transform: none;
+        }
+
+        .options button.correct {
+            background: #10b981;
+            color: white;
+            border: 1px solid #059669;
+            transform: none;
+        }
+
+        .options button.incorrect {
+            background: #ef4444;
+            color: white;
+            border: 1px solid #dc2626;
+            transform: none;
+        }
+
+        .options button.correct:hover,
+        .options button.incorrect:hover {
+            transform: none;
+        }
+
+        .feedback-message {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
             opacity: 0;
-            transform: translateY(10px);
+            transform: translateY(-10px);
             transition: all 0.3s ease;
         }
 
-        .feedback.show {
+        .feedback-message.show {
             opacity: 1;
             transform: translateY(0);
         }
 
-        .feedback.correct {
-            background: #c6f6d5;
-            color: #2f855a;
-            border: 1px solid #9ae6b4;
+        .feedback-message.correct {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
         }
 
-        .feedback.incorrect {
-            background: #fed7d7;
-            color: #c53030;
-            border: 1px solid #feb2b2;
-        }
-
-        /* Indicador de progreso */
-        .progress-indicator {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: white;
-            padding: 10px 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            font-size: 0.9rem;
-            color: #4a5568;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 1000;
-        }
-
-        .progress-indicator .icon {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #48bb78;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 12px;
+        .feedback-message.incorrect {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
         }
     </style>
 </head>
 <body>
-    <div class="json-selector" id="selector">
-        <h2>Selecciona una localidad</h2>
+    <div id="selector">
+        <h1>Selecciona una localidad</h1>
         <select id="json-select">
-            <option value="">Elige una localidad</option>
+            <option value="">Selecciona una opción</option>
         </select>
-        <button id="start-button">Comenzar aventura</button>
+        <button id="start-button">Comenzar Aventura</button>
     </div>
+    
     <div id="map"></div>
+    <div id="rangeMessage">¡Estás demasiado lejos de este punto!</div>
+    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
 </body>
