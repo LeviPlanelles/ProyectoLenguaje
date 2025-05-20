@@ -66,5 +66,22 @@
       ],
       "correcta": 3
     }
+  },
+  {
+    "nombre": "casa",
+    "coordenadas": {
+      "lat": 38.751757673860894,
+      "lng": 0.20475447177886966
+    },
+    "pregunta": "hahaa",
+    "respuestas": {
+      "opciones": [
+        "ijasf",
+        "sodifj",
+        "osdf",
+        "eojw"
+      ],
+      "correcta": 3
+    }
   }
 ]

@@ -4,6 +4,16 @@ let userMarker;
 let userCircle;
 const INTERACTION_RADIUS = 100; // Radio de interacción en metros
 let answeredQuestions = new Set();
+let score = {
+    correct: 0,
+    incorrect: 0,
+    totalPoints: 0
+};
+
+// Cargar puntuación guardada si existe
+if (localStorage.getItem('gameScore')) {
+    score = JSON.parse(localStorage.getItem('gameScore'));
+}
 
 // Inicialización del mapa
 document.addEventListener('DOMContentLoaded', function() {
@@ -190,6 +200,10 @@ function createMarkers(data) {
                 `).join('')}
             </div>
             <div class="feedback-message"></div>
+            <div class="score-display">
+                <p>Puntuación: ${score.totalPoints} puntos</p>
+                <p>Aciertos: ${score.correct} | Fallos: ${score.incorrect}</p>
+            </div>
         `);
     });
 }
@@ -202,24 +216,35 @@ function checkAnswer(selected, correct, pointId) {
     const popup = document.querySelector('.leaflet-popup-content');
     const buttons = popup.querySelectorAll('.options button');
     const feedbackMessage = popup.querySelector('.feedback-message');
+    const scoreDisplay = popup.querySelector('.score-display');
 
     if (selected === correct) {
         buttons[selected].classList.add('correct');
-        feedbackMessage.textContent = '¡Respuesta correcta!';
+        feedbackMessage.textContent = '¡Respuesta correcta! +10 puntos';
         feedbackMessage.classList.add('correct', 'show');
+        score.correct++;
+        score.totalPoints += 10;
     } else {
         buttons[selected].classList.add('incorrect');
         buttons[correct].classList.add('correct');
         feedbackMessage.textContent = 'Respuesta incorrecta';
         feedbackMessage.classList.add('incorrect', 'show');
+        score.incorrect++;
     }
+
+    // Actualizar la visualización de la puntuación
+    scoreDisplay.innerHTML = `
+        <p>Puntuación: ${score.totalPoints} puntos</p>
+        <p>Aciertos: ${score.correct} | Fallos: ${score.incorrect}</p>
+    `;
 
     // Deshabilitar todos los botones después de responder
     buttons.forEach(button => {
         button.disabled = true;
     });
 
-    // Marcar la pregunta como respondida
+    // Guardar el estado del juego
     answeredQuestions.add(pointId);
     localStorage.setItem('answeredQuestions', JSON.stringify([...answeredQuestions]));
+    localStorage.setItem('gameScore', JSON.stringify(score));
 }
